@@ -1,0 +1,6 @@
+# Values are supplied at runtime with --set, so the compiler cannot fold them.
+setup = load(20)
+cycle = load(21)
+quantity = load(22)
+unused = (9 + 3) * 2
+output = setup + cycle * quantity + 0

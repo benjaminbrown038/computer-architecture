@@ -1,0 +1,5 @@
+# The compiler can calculate this entire expression before CPU execution.
+setup = 12
+cycle = 7
+quantity = 5
+output = setup + cycle * quantity

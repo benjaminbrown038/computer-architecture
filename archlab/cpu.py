@@ -5,7 +5,7 @@ from archlab.alu import add
 from archlab.memory import Memory
 
 ARITY = {"MOV": 2, "ADD": 2, "DEC": 1, "LOAD": 2, "STORE": 2,
-         "JNZ": 2, "HALT": 0}
+         "JNZ": 2, "HALT": 0, "CALL": 1, "RET": 0, "JMP": 1}
 
 
 def assemble(source):
@@ -29,7 +29,11 @@ def assemble(source):
     for op, args in instructions:
         resolved = []
         for i, token in enumerate(args):
-            if i == 0 or (op == "ADD" and i == 1):
+            if op in ("CALL", "JMP"):
+                if token not in labels or labels[token] >= len(instructions):
+                    raise ValueError(f"invalid jump/call label: {token}")
+                resolved.append(labels[token])
+            elif i == 0 or (op == "ADD" and i == 1):
                 if token.upper() not in ("R0", "R1", "R2", "R3"):
                     raise ValueError(f"invalid register: {token}")
                 resolved.append(int(token[1:]))
@@ -54,6 +58,8 @@ class CPU:
         self.pc = 0
         self.steps = 0
         self.halted = False
+        self.return_stack = []
+        self.stack_limit = 64
 
     def step(self):
         if self.halted:
@@ -62,6 +68,10 @@ class CPU:
             raise RuntimeError("program ended without HALT")
         old_pc = self.pc
         op, args = self.program[self.pc]
+        if op == "RET" and not self.return_stack:
+            raise RuntimeError("RET with empty return stack")
+        if op == "CALL" and len(self.return_stack) >= self.stack_limit:
+            raise RuntimeError("return stack overflow")
         self.pc += 1
         r = self.registers
         if op == "MOV":
@@ -77,10 +87,17 @@ class CPU:
         elif op == "JNZ":
             if r[args[0]] != 0:
                 self.pc = args[1]
+        elif op == "JMP":
+            self.pc = args[0]
+        elif op == "CALL":
+            self.return_stack.append(self.pc)
+            self.pc = args[0]
+        elif op == "RET":
+            self.pc = self.return_stack.pop()
         elif op == "HALT":
             self.halted = True
         self.steps += 1
-        return f"PC={old_pc:02} {op:5} {str(args):10} -> R={r} next_PC={self.pc}"
+        return f"PC={old_pc:02} {op:5} {str(args):10} -> R={r} next_PC={self.pc} stack={self.return_stack}"
 
     def run(self, trace=False, limit=10000):
         while not self.halted:
@@ -96,9 +113,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("program", type=Path)
     parser.add_argument("--trace", action="store_true")
+    parser.add_argument("--watch", nargs="+", type=int, default=[16],
+                        help="memory addresses to print after execution (0..255)")
     args = parser.parse_args()
+    if any(not 0 <= address < 256 for address in args.watch):
+        parser.error("--watch addresses must be 0..255")
     cpu = CPU(assemble(args.program.read_text())).run(args.trace)
-    print(f"HALTED after {cpu.steps} instructions; registers={cpu.registers}; memory[16]={cpu.memory.read(16)}")
+    print(f"HALTED after {cpu.steps} instructions; registers={cpu.registers}")
+    for address in args.watch:
+        print(f"memory[{address}]={cpu.memory.read(address)}")
 
 
 if __name__ == "__main__":

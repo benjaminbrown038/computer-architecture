@@ -1,0 +1,9 @@
+# One tiny integer neuron: two inputs, two weights, and a bias.
+# x0=2, x1=3, w0=4, w1=5, bias=1 produces 24.
+x0 = load(20)
+x1 = load(21)
+w0 = load(22)
+w1 = load(23)
+bias = load(24)
+unused = x0 + x1
+output = x0 * w0 + x1 * w1 + bias + 0

@@ -1,0 +1,6 @@
+# The same expression occurs twice; optimized code calculates it once.
+a = load(20)
+b = load(21)
+first = a * b
+second = a * b
+output = first + second
