@@ -1,6 +1,6 @@
 ; Work-order time estimator for the archlab teaching CPU.
 ; Run from the repository root:
-; python3 -m archlab.cpu work-order-time.asm --trace
+; python3 -m archlab.cpu programs/work-order-time.asm --trace
 ;
 ; Example: 12 setup minutes + 5 parts * 7 minutes/part = 47 minutes.
 ; Inputs: memory[20] = setup minutes, [21] = minutes per part,
